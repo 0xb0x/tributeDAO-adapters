@@ -25,11 +25,15 @@ SOFTWARE.
  */
 
 interface IAaveFinancing {
+    
+    enum AaveDo { Deposit, Withdraw, Borrow, Repay }
+
     function submitProposal(
         DaoRegistry dao,
         bytes32 proposalId,
         address applicant,
         address token,
+        AaveDo watDo,
         uint256 amount,
         bytes memory data
     ) external;
