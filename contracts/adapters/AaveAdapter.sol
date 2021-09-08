@@ -46,7 +46,7 @@ contract AaveFinancing is
         address applicant; // the proposal applicant address, can not be a reserved address
         uint256 amount; // the amount requested for funding
         address token; // the token address in which the funding must be sent to
-        AaveDo watDo;
+        AaveDo watDo; // what to do on Aave
         address debtTokenRecipient;
     }
 
@@ -71,6 +71,7 @@ contract AaveFinancing is
      * @param applicant The applicant address.
      * @param token The token to receive the funds.
      * @param amount The desired amount.
+     * @param _watDo The aave action to carry out
      * @param data Additional details about the financing proposal.
      */
     function submitProposal(
@@ -151,6 +152,13 @@ contract AaveFinancing is
         }
     }
 
+    /**
+     * @notice Execute actions on Aave protocol
+     * @param _watDo Action to execute on Aave
+     * @param _asset Token to interact with on Aave
+     * @param _amount
+     * @param _onBehalfOf 
+     */
     function _executeAction(AaveDo _watDo, address _asset, uint256 _amount, address _onBehalfOf) internal {
         if (_watDo == AaveDo.Deposit) lendingPool.deposit(_asset, _amount, _onBehalfOf, 0);
         if (_watDo == AaveDo.Withdraw) lendingPool.withdraw(_asset, _amount, _onBehalfOf);
