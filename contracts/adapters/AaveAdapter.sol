@@ -2,15 +2,15 @@ pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: MIT
 
-import "../interfaces/IAaveFinancing.sol";
+import "./interfaces/IAaveFinancing.sol";
 import "../core/DaoConstants.sol";
 import "../core/DaoRegistry.sol";
 import "../extensions/bank/Bank.sol";
 import "../adapters/interfaces/IVoting.sol";
 import "../guards/MemberGuard.sol";
 import "../guards/AdapterGuard.sol";
-import "../interfaces/ILendingPoolAddressesProvider.sol";
-import "../interfaces/ILendingPool.sol";
+import "../aave-interfaces/ILendingPoolAddressesProvider.sol";
+import "../aave-interfaces/ILendingPool.sol";
 
 /**
 MIT License
@@ -32,7 +32,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-contract FinancingContract is
+contract AaveFinancing is
     IAaveFinancing,
     DaoConstants,
     MemberGuard,
@@ -46,6 +46,7 @@ contract FinancingContract is
         uint256 amount; // the amount requested for funding
         address token; // the token address in which the funding must be sent to
         AaveDo watDo;
+        address debtTokenRecipient;
     }
 
     enum AaveDo { Deposit, Withdraw, Borrow, Repay }
@@ -138,10 +139,19 @@ contract FinancingContract is
         dao.processProposal(proposalId);
         BankExtension bank = BankExtension(dao.getExtensionAddress(BANK));
 
-        bank.subtractFromBalance(GUILD, details.token, details.amount);
-        bank.addToBalance(address(this), details.token, details.amount);
+        if(details.watDo == AaveDo.borrow){
+            _executeAction(details.watDo, details.token, details.amount, address(this));
+            IERC20(details.token).transferFrom(address(this), GUILD, details.amount);
+        } else {
+            bank.subtractFromBalance(GUILD, details.token, details.amount);
+            bank.addToBalance(address(this), details.token, details.amount);
 
-        _executeAction(details.watDo, details.token, details.amount, address(bank));
+            require(bank.balanceOf(address(this), details.token) >= details.amount);
+
+            bank.withdraw(address(this), details.token, details.amount);
+
+            _executeAction(details.watDo, details.token, details.amount, address(bank));
+        }
     }
 
     function _executeAction(AaveDo _watDo, address _asset, uint256 _amount, address _onBehalfOf) internal {
