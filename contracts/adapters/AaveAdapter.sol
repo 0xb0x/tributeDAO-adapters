@@ -40,6 +40,7 @@ contract AaveFinancing is
 {
 
     ILendingPoolAddressesProvider lendingPoolAddressesProvider = ILendingPoolAddressesProvider(address(0));
+    ILendingPool lendingPool = ILendingPool(lendingPoolAddressesProvider.getLendingPool());
 
     struct ProposalDetails {
         address applicant; // the proposal applicant address, can not be a reserved address
@@ -48,8 +49,6 @@ contract AaveFinancing is
         AaveDo watDo;
         address debtTokenRecipient;
     }
-
-    enum AaveDo { Deposit, Withdraw, Borrow, Repay }
 
     // keeps track of all financing proposals handled by each dao
     mapping(address => mapping(bytes32 => ProposalDetails)) public proposals;
@@ -126,8 +125,6 @@ contract AaveFinancing is
     {
         ProposalDetails memory details = proposals[address(dao)][proposalId];
 
-        ILendingPool lendingPool = ILendingPool(lendingPoolAddressesProvider.getLendingPool());
-
         IVoting votingContract = IVoting(dao.votingAdapter(proposalId));
         require(address(votingContract) != address(0), "adapter not found");
 
@@ -139,7 +136,7 @@ contract AaveFinancing is
         dao.processProposal(proposalId);
         BankExtension bank = BankExtension(dao.getExtensionAddress(BANK));
 
-        if(details.watDo == AaveDo.borrow){
+        if(details.watDo == AaveDo. Borrow){
             _executeAction(details.watDo, details.token, details.amount, address(this));
             IERC20(details.token).transferFrom(address(this), GUILD, details.amount);
         } else {
@@ -148,16 +145,16 @@ contract AaveFinancing is
 
             require(bank.balanceOf(address(this), details.token) >= details.amount);
 
-            bank.withdraw(address(this), details.token, details.amount);
+            bank.withdraw(payable(address(this)), details.token, details.amount);
 
             _executeAction(details.watDo, details.token, details.amount, address(bank));
         }
     }
 
     function _executeAction(AaveDo _watDo, address _asset, uint256 _amount, address _onBehalfOf) internal {
-        if (_watDo == AaveDo.Deposit) deposit(_asset, _amount, _onBehalfOf, 0);
-        if (_watDo == AaveDo.Withdraw) withdraw(_asset, _amount, _onBehalfOf);
-        if (_watDo == AaveDo.Borrow) borrow( _asset,_amount, 1, 0, _onBehalfOf);
-        if (_watDo == AaveDo.Repay) repay(_asset, _amount, 1, _onBehalfOf);
+        if (_watDo == AaveDo.Deposit) lendingPool.deposit(_asset, _amount, _onBehalfOf, 0);
+        if (_watDo == AaveDo.Withdraw) lendingPool.withdraw(_asset, _amount, _onBehalfOf);
+        if (_watDo == AaveDo.Borrow) lendingPool.borrow( _asset,_amount, 1, 0, _onBehalfOf);
+        if (_watDo == AaveDo.Repay) lendingPool.repay(_asset, _amount, 1, _onBehalfOf);
     }
 }

@@ -25,7 +25,7 @@ SOFTWARE.
  */
 
 interface IAaveFinancing {
-    
+
     enum AaveDo { Deposit, Withdraw, Borrow, Repay }
 
     function submitProposal(
@@ -33,8 +33,8 @@ interface IAaveFinancing {
         bytes32 proposalId,
         address applicant,
         address token,
-        AaveDo watDo,
         uint256 amount,
+        AaveDo watDo,
         bytes memory data
     ) external;
 
